@@ -1,6 +1,6 @@
 # PlanningScene类的构建
 PlanningScene类可以由RobotModel或者URDF、SRDF得到。也可由PlanningSceneMonitor得到。
-```
+```cpp
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
   planning_scene::PlanningScene planning_scene(kinematic_model);
@@ -8,7 +8,7 @@ PlanningScene类可以由RobotModel或者URDF、SRDF得到。也可由PlanningSc
 # 碰撞检测
 ## 自碰撞检查
 先构建CollisionRequest对象和CollisionResult对象，把他们传入checkSelfCollision函数。自碰撞检测由URDF给出的渲染模型决定。
-```
+```cpp
   collision_detection::CollisionRequest collision_request;
   collision_detection::CollisionResult collision_result;
   planning_scene.checkSelfCollision(collision_request, collision_result);
@@ -16,7 +16,7 @@ PlanningScene类可以由RobotModel或者URDF、SRDF得到。也可由PlanningSc
 ```
 ## 改变状态
 获取当前状态病进行自碰撞检测。
-```
+```cpp
   robot_state::RobotState& current_state = planning_scene.getCurrentStateNonConst();
   current_state.setToRandomPositions();
   collision_result.clear();
@@ -25,7 +25,7 @@ PlanningScene类可以由RobotModel或者URDF、SRDF得到。也可由PlanningSc
 ```
 ## 不同控制组间的碰撞检查
 检查手与机械臂间的自碰撞，即将组名“hand”加入collision request。
-```
+```cpp
   collision_request.group_name = "hand";
   current_state.setToRandomPositions();
   collision_result.clear();
@@ -34,7 +34,7 @@ PlanningScene类可以由RobotModel或者URDF、SRDF得到。也可由PlanningSc
 ```
 ##获取碰撞信息
 首先移动机械臂到一个自碰撞的位置。
-```
+```cpp
   std::vector<double> joint_values = { 0.0, 0.0, 0.0, -2.9, 0.0, 1.4, 0.0 };
   const robot_model::JointModelGroup* joint_model_group = current_state.getJointModelGroup("panda_arm");
   current_state.setJointGroupPositions(joint_model_group, joint_values);
@@ -42,7 +42,7 @@ PlanningScene类可以由RobotModel或者URDF、SRDF得到。也可由PlanningSc
                   << (current_state.satisfiesBounds(joint_model_group) ? "valid" : "not valid"));
 ```
 设置collision_request.contacts为true，遍历collision_result.contacts获得碰撞的信息。
-```
+```cpp
   collision_request.contacts = true;
   collision_request.max_contacts = 1000;
 
@@ -57,7 +57,7 @@ PlanningScene类可以由RobotModel或者URDF、SRDF得到。也可由PlanningSc
 ```
 ## Allowed Collision Matrix(ACM矩阵)
 ACM矩阵可以让检测程序忽略指定物体间的碰撞。
-```
+```cpp
   collision_detection::AllowedCollisionMatrix acm = planning_scene.getAllowedCollisionMatrix();
   robot_state::RobotState copied_state = planning_scene.getCurrentState();
 
@@ -72,7 +72,7 @@ ACM矩阵可以让检测程序忽略指定物体间的碰撞。
 ```
 ## checkCollision函数
 该函数可以同事检查自碰撞和机器人与环境间的碰撞。
-```
+```cpp
   collision_result.clear();
   planning_scene.checkCollision(collision_request, collision_result, copied_state, acm);
   ROS_INFO_STREAM("Test 7: Current state is " << (collision_result.collision ? "in" : "not in") << " self collision");
@@ -82,7 +82,7 @@ ACM矩阵可以让检测程序忽略指定物体间的碰撞。
 限制检查包括运动学限制（如关节限制、位置限制、方向限制和可见性限制）与自定义限制。
 ## 运动学限制
 定义运动学限制：
-```
+```cpp
   std::string end_effector_name = joint_model_group->getLinkModelNames().back();
 
   geometry_msgs::PoseStamped desired_pose;
@@ -97,7 +97,7 @@ ACM矩阵可以让检测程序忽略指定物体间的碰撞。
 将限制以及一个随机的机器人位置传入isStateConstrained函数判断该状态是否在限制内。
 ##自定义限制
 自定义一个stateFeasibilityTestExample函数对自定义的限制进行判断。然后向setStateFeasibilityPredicate函数传入自定义函数句柄来对当前状态进行检测。
-```
+```cpp
 bool stateFeasibilityTestExample(const robot_state::RobotState& kinematic_state, bool verbose)
 {
   const double* joint_values = kinematic_state.getJointPositions("panda_joint1");
