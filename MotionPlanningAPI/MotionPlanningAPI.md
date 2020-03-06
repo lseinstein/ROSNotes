@@ -10,7 +10,7 @@ roslaunch moveit_tutorials motion_planning_api_tutorial.launch
 # 程序
 ## 准备工作
 Planner在MoveIt中被设计成一个插件，使用这可以用ROS pluginlib interface来加载planner。在加载前，使用者需要两个对象，一个RobotModel和一个PlanningScene。因此，首先实例化一个RobotModelLoader对象，它会查询ROS parameter server中的机器人描述，并自动构建一个RobotModel。  
-RobotModelLoader:   http://docs.ros.org/indigo/api/moveit_ros_planning/html/classrobot__model__loader_1_1RobotModelLoader.html
+[RobotModelLoader](http://docs.ros.org/indigo/api/moveit_ros_planning/html/classrobot__model__loader_1_1RobotModelLoader.html)   
 ```cpp
   const std::string PLANNING_GROUP = "panda_arm";
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
