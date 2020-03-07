@@ -36,7 +36,8 @@ Planner在MoveIt中被设计成一个插件，使用这可以用ROS pluginlib in
   ```
 这步应该是从ROS的参数服务器中获得一个Planning plugin的名字，然后加载这个planner。  
 ```diff
-- !!!没太搞清楚，留待以后理解。
+- !!!
+- 没太搞清楚，留待以后理解。
 ```
   ```cpp
   // We will get the name of planning plugin we want to load
@@ -225,6 +226,10 @@ Remote control是一个方便操作的工具，允许使用在RViz中使用按�
 ```
 对运动施加一个路径约束.
 constructGoalConstraints函数应该是重载复用的，根据传入参数种类不同，改变约束的形式。
+```diff
+- !!!
+- 有点没懂这块添加了一个四元数的约束是要干啥？原文是“asking for the end-effector to saty level”,保持水平？
+```
 ```cpp
   geometry_msgs::QuaternionStamped quaternion;
   quaternion.header.frame_id = "panda_link0";
