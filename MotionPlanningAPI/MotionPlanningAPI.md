@@ -159,3 +159,101 @@ Remote control是一个方便操作的工具，允许使用在RViz中使用按�
 
   visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
 ```
+## 关节空间目标
+首先建立关节空间目标，push back进req的目标约束中。
+```cpp
+  robot_state::RobotState goal_state(robot_model);
+  std::vector<double> joint_values = { -1.0, 0.7, 0.7, -1.5, -0.7, 2.0, 0.0 };
+  goal_state.setJointGroupPositions(joint_model_group, joint_values);
+  moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
+  req.goal_constraints.clear();
+  req.goal_constraints.push_back(joint_goal);
+```
+然后调用planner进行求解，之后把求解得到的轨迹显示出来。
+```cpp
+  /* Re-construct the planning context */
+  context = planner_instance->getPlanningContext(planning_scene, req, res.error_code_);
+  /* Call the Planner */
+  context->solve(res);
+  /* Check that the planning was successful */
+  if (res.error_code_.val != res.error_code_.SUCCESS)
+  {
+    ROS_ERROR("Could not compute plan successfully");
+    return 0;
+  }
+  /* Visualize the trajectory */
+  res.getMessage(response);
+  display_trajectory.trajectory.push_back(response.trajectory);
+
+  ```
+  把轨迹发布出去。
+  ```cpp
+  visual_tools.publishTrajectoryLine(display_trajectory.trajectory.back(), joint_model_group);
+  visual_tools.trigger();
+  display_publisher.publish(display_trajectory);
+
+  ```
+  把Planning scene中的状态设置成运动计划的最终状态。
+  ```cpp
+  robot_state->setJointGroupPositions(joint_model_group, response.trajectory.joint_trajectory.points.back().positions);
+  planning_scene->setCurrentState(*robot_state.get());
+
+  ```
+  这步显示目标状态。
+  ```cpp
+  visual_tools.publishRobotState(planning_scene->getCurrentStateNonConst(), rviz_visual_tools::GREEN);
+  visual_tools.publishAxisLabeled(pose.pose, "goal_2");
+  visual_tools.publishText(text_pose, "Joint Space Goal (2)", rvt::WHITE, rvt::XLARGE);
+  visual_tools.trigger();
+
+  /* Wait for user input */
+  visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
+```
+## 添加路径约束
+在有路径约束的条件下规划姿态目标的运动。首先定义目标姿态并构建一个目标约束。
+```cpp
+  pose.pose.position.x = 0.32;
+  pose.pose.position.y = -0.25;
+  pose.pose.position.z = 0.65;
+  pose.pose.orientation.w = 1.0;
+  moveit_msgs::Constraints pose_goal_2 =
+      kinematic_constraints::constructGoalConstraints("panda_link8", pose, tolerance_pose, tolerance_angle);
+
+  /* Now, let's try to move to this new pose goal*/
+  req.goal_constraints.clear();
+  req.goal_constraints.push_back(pose_goal_2);
+```
+对运动施加一个路径约束.
+constructGoalConstraints函数应该是重载复用的，根据传入参数种类不同，改变约束的形式。
+```cpp
+  geometry_msgs::QuaternionStamped quaternion;
+  quaternion.header.frame_id = "panda_link0";
+  quaternion.quaternion.w = 1.0;
+  req.path_constraints = kinematic_constraints::constructGoalConstraints("panda_link8", quaternion);
+```
+施加路径约束需要在机器人的工作空间中，以使planner明确机器人末端的可行位置。所以之后设置工作空间的参数。设置一个立方体的两个对角坐标即可。
+```cpp
+  req.workspace_parameters.min_corner.x = req.workspace_parameters.min_corner.y =
+      req.workspace_parameters.min_corner.z = -2.0;
+  req.workspace_parameters.max_corner.x = req.workspace_parameters.max_corner.y =
+      req.workspace_parameters.max_corner.z = 2.0;
+
+  // Call the planner and visualize all the plans created so far.
+  context = planner_instance->getPlanningContext(planning_scene, req, res.error_code_);
+  context->solve(res);
+  res.getMessage(response);
+  display_trajectory.trajectory.push_back(response.trajectory);
+  visual_tools.publishTrajectoryLine(display_trajectory.trajectory.back(), joint_model_group);
+  visual_tools.trigger();
+  display_publisher.publish(display_trajectory);
+
+  /* Set the state in the planning scene to the final state of the last plan */
+  robot_state->setJointGroupPositions(joint_model_group, response.trajectory.joint_trajectory.points.back().positions);
+  planning_scene->setCurrentState(*robot_state.get());
+
+  // Display the goal state
+  visual_tools.publishRobotState(planning_scene->getCurrentStateNonConst(), rviz_visual_tools::GREEN);
+  visual_tools.publishAxisLabeled(pose.pose, "goal_3");
+  visual_tools.publishText(text_pose, "Orientation Constrained Motion Plan (3)", rvt::WHITE, rvt::XLARGE);
+  visual_tools.trigger();
+```
